@@ -1,10 +1,11 @@
 import numpy as np
 import cv2
 import time
+import random
 from grabscreen import grab_screen
 from keys import Keys
 
-import playsound
+# Removed playsound import (not used)
 
 HEIGTH = 768
 WIDTH = 1024
@@ -12,12 +13,13 @@ WIDTH = 1024
 keys = Keys()
 
 
-def move_mouse(click_x,click_y):
+def move_mouse(click_x, click_y):
+    """Move mouse with human-like behavior"""
+    # Small random delay before action
+    time.sleep(random.uniform(0.05, 0.15))
     keys.keys_worker.sendMouse(dx=0, dy=0, buttons=keys.mouse_lb_press)
-    time.sleep(1)
-    # time.sleep(0.2)
+    time.sleep(random.uniform(0.8, 1.2))  # Variable hold time
     keys.keys_worker.sendMouse(dx=-1, dy=0, buttons=keys.mouse_lb_release)
-    # time.sleep(0.2)
 
 for i in list(range(4))[::-1]:
     print(i+1)
@@ -62,8 +64,13 @@ while (iCoin<50):
 
     screenGray = cv2.cvtColor(screen,  cv2.COLOR_BGR2GRAY)
 
-    #ret,whiteChannel = cv2.threshold(screenGray,28,255,cv2.THRESH_BINARY)
-    ret,whiteChannel = cv2.threshold(screenGray,28,255,cv2.THRESH_BINARY)
+    # Adaptive threshold for better detection in Blockade 3D Classic
+    # Try multiple threshold values for better window border detection
+    ret,whiteChannel = cv2.threshold(screenGray, 30, 255, cv2.THRESH_BINARY)
+    
+    # Alternative: Use adaptive threshold if simple threshold fails
+    # whiteChannel = cv2.adaptiveThreshold(screenGray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
+    #                                     cv2.THRESH_BINARY, 11, 2)
 
     notADamnThing = ""
     iix = 0
@@ -71,23 +78,41 @@ while (iCoin<50):
     detectedX = 0
     detectedY = 0
     once = 0
+    # Improved detection: look for window border in top-left area
+    # Check first few rows and columns for white pixels (window border)
     transWhiteChannel = whiteChannel.transpose()
+    
+    # Search in a slightly larger area for better detection
+    search_width = min(50, WIDTH)
+    search_height = min(10, HEIGTH)
+    
     for lineX in simpleMat:
         #processing simplify matrix here
         for rowY in lineX:
-            if(iiy < WIDTH):
-                if(iix < 2):
+            if(iiy < search_width):
+                if(iix < search_height):
+                    # Check for white pixel (window border)
                     if(transWhiteChannel[iiy][iix] == 255):
-                        if(transWhiteChannel[0][0] == 0):
-                            if(once == 0):
+                        # Verify it's not just noise - check surrounding pixels
+                        if(iix > 0 and iiy > 0):
+                            # Check if we have a consistent border pattern
+                            border_count = 0
+                            for dx in [-1, 0, 1]:
+                                for dy in [-1, 0, 1]:
+                                    if 0 <= iiy+dy < WIDTH and 0 <= iix+dx < HEIGTH:
+                                        if transWhiteChannel[iiy+dy][iix+dx] == 255:
+                                            border_count += 1
+                            
+                            # If we have enough border pixels, it's likely the window edge
+                            if border_count >= 3 and once == 0:
                                 once = 1
                                 detectedX = str(iix)
                                 detectedY = str(iiy)
-                        else:
-                            print("top left corner achieved")
+                                print(f"Window corner detected at: ({iix}, {iiy})")
+                                break
             iiy += 1
-            #notADamnThing = notADamnThing + str(rowY)
-        #notADamnThing = notADamnThing + '\n'
+        if once:
+            break
         #next line
         iix += 1
 

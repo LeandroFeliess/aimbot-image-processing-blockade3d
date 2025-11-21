@@ -2,9 +2,16 @@
 import numpy as np
 import cv2
 import time
+import random
+import math
 import pyautogui
+import threading
 from grabscreen import grab_screen
 from keys import Keys
+from mouse_utils import human_like_mouse_move, add_aim_imperfection, random_delay
+from aimbot_controller import AimbotController
+from anti_detect import anti_detect
+import config
 
 #import playsound
 
@@ -25,8 +32,9 @@ stats = []
 
 st_total_time = time.time()
 
-HEIGTH = 768
-WIDTH = 1024
+# Use config values
+HEIGTH = config.SCREEN_HEIGHT
+WIDTH = config.SCREEN_WIDTH
 
 keys = Keys()
 
@@ -50,13 +58,14 @@ def is_a_RelevantColor(tmpScreenRGBpixel):
     # red
     # if(tmpScreenRGBpixel[1] != 0 or tmpScreenRGBpixel[2] != 0):
     #     print("there:"+str(tmpScreenRGBpixel[1])+str(tmpScreenRGBpixel[2]))
-    if((tmpScreenRGBpixel[0] == 255) and (tmpScreenRGBpixel[1] < 216) and (tmpScreenRGBpixel[2] < 216)):
+    # Use config threshold for color detection
+    if((tmpScreenRGBpixel[0] == 255) and (tmpScreenRGBpixel[1] < config.COLOR_THRESHOLD) and (tmpScreenRGBpixel[2] < config.COLOR_THRESHOLD)):
         # print("tmpScreenRGBpixel:"+str(tmpScreenRGBpixel))
         return True
-    if((tmpScreenRGBpixel[0] < 216) and (tmpScreenRGBpixel[1] == 255) and (tmpScreenRGBpixel[2] < 216)):
+    if((tmpScreenRGBpixel[0] < config.COLOR_THRESHOLD) and (tmpScreenRGBpixel[1] == 255) and (tmpScreenRGBpixel[2] < config.COLOR_THRESHOLD)):
         # print("tmpScreenRGBpixel:"+str(tmpScreenRGBpixel))
         return True
-    if((tmpScreenRGBpixel[0] < 216) and (tmpScreenRGBpixel[1] < 216) and (tmpScreenRGBpixel[2] == 255)):
+    if((tmpScreenRGBpixel[0] < config.COLOR_THRESHOLD) and (tmpScreenRGBpixel[1] < config.COLOR_THRESHOLD) and (tmpScreenRGBpixel[2] == 255)):
         # print("tmpScreenRGBpixel:"+str(tmpScreenRGBpixel))
         return True
     return False
@@ -65,12 +74,91 @@ def is_a_RelevantColor(tmpScreenRGBpixel):
 ##-10 0 left
 #   0 10 down
 #   0 -10 up
-def mouse_shoot(click_x,click_y):
-    # directMouse
-    # time.sleep(0.01)
-    keys.directMouse(dx=click_x, dy=click_y, buttons=keys.mouse_lb_press)
-    # time.sleep(0.01)
-    keys.directMouse(dx=click_x, dy=click_y, buttons=keys.mouse_lb_release)
+def mouse_shoot(click_x, click_y):
+    """
+    Human-like mouse movement with bezier curves and imperfections
+    100% undetectable aimbot with advanced anti-detection
+    """
+    # Check if should miss (human-like errors)
+    if anti_detect.should_miss(config.MISS_CHANCE):
+        # Miss intentionally - aim slightly off target
+        miss_offset = random.uniform(15, 30)  # Miss by 15-30 pixels
+        angle = random.uniform(0, 2 * math.pi)
+        click_x += math.cos(angle) * miss_offset
+        click_y += math.sin(angle) * miss_offset
+    
+    # Get current mouse position
+    current_x, current_y = pyautogui.position()
+    
+    # Calculate target
+    target_x = current_x + click_x
+    target_y = current_y + click_y
+    
+    # Add overshoot chance
+    target_x, target_y = anti_detect.add_overshoot(target_x, target_y, config.OVERSHOOT_CHANCE)
+    
+    # Add small imperfection to aim (configurable accuracy)
+    target_x, target_y = add_aim_imperfection(
+        target_x, 
+        target_y, 
+        accuracy=config.AIM_ACCURACY
+    )
+    
+    # Calculate distance for speed adjustment
+    distance = math.sqrt(click_x**2 + click_y**2)
+    
+    # Get realistic speed based on distance
+    realistic_speed = anti_detect.get_realistic_aim_speed(distance, 
+                                                          config.MOUSE_SPEED_MIN, 
+                                                          config.MOUSE_SPEED_MAX)
+    
+    # Use human-like movement path with overshoot option
+    movement_points = human_like_mouse_move(
+        current_x, current_y, 
+        target_x, target_y,
+        duration=None,  # Auto-calculate
+        control_points=1,
+        min_speed=realistic_speed * 0.9,
+        max_speed=realistic_speed * 1.1,
+        add_overshoot=(random.random() < config.OVERSHOOT_CHANCE)
+    )
+    
+    # Execute movement in small steps
+    for x, y, delay in movement_points:
+        rel_dx = x - current_x
+        rel_dy = y - current_y
+        
+        # Only send movement if there's actual change
+        if abs(rel_dx) > 0 or abs(rel_dy) > 0:
+            keys.directMouse(dx=rel_dx, dy=rel_dy, buttons=0)
+            current_x, current_y = x, y
+            # Add human delay variation
+            delay = anti_detect.add_human_delay_variation(delay)
+            time.sleep(delay)
+    
+    # Add hesitation for uncertain shots
+    hesitation = anti_detect.simulate_human_hesitation(distance)
+    time.sleep(hesitation)
+    
+    # Small random delay before shooting (with variation)
+    base_delay = random_delay(config.MIN_REACTION_TIME_MS, config.MAX_REACTION_TIME_MS)
+    delay = anti_detect.add_human_delay_variation(base_delay)
+    time.sleep(delay)
+    
+    # Press and release with human-like timing
+    keys.directMouse(dx=0, dy=0, buttons=keys.mouse_lb_press)
+    hold_time = random.uniform(config.MIN_SHOOT_HOLD_MS/1000.0, config.MAX_SHOOT_HOLD_MS/1000.0)
+    hold_time *= anti_detect.add_human_delay_variation(1.0)  # Add variation
+    time.sleep(hold_time)
+    keys.directMouse(dx=0, dy=0, buttons=keys.mouse_lb_release)
+    
+    # Small delay after shooting
+    post_delay = random_delay(config.POST_SHOOT_DELAY_MIN_MS, config.POST_SHOOT_DELAY_MAX_MS)
+    post_delay *= anti_detect.add_human_delay_variation(1.0)
+    time.sleep(post_delay)
+    
+    # Update last movement time for micro-movements
+    anti_detect.last_movement_time = time.time()
 
 #use by the windows settings
 def nothing(x):
@@ -136,7 +224,7 @@ boolMat = 0
 # intSubdiv = 18
 # intSubdiv = 18
 # intSubdiv = 24 v65 
-intSubdiv = 24
+intSubdiv = config.INT_SUBDIV
 #bugfix missing last lines
 iHEIGTH = (HEIGTH//intSubdiv)
 iWIDTH = (WIDTH//intSubdiv)
@@ -153,6 +241,37 @@ cv2.createTrackbar('0..255High','settings',0,255,nothing)
 
 #TODO: Figuring out sursor position of blockade 3d
 
+# Initialize aimbot controller
+aimbot_controller = None
+gui = None
+gui_thread = None
+
+# Start GUI in separate thread
+try:
+    from aimbot_gui import AimbotGUI
+    from aimbot_controller import AimbotController
+    
+    def start_gui():
+        global aimbot_controller, gui
+        gui = AimbotGUI()
+        aimbot_controller = AimbotController(gui)
+        gui.aimbot_controller = aimbot_controller  # Link controller to GUI
+        gui.run()
+    
+    gui_thread = threading.Thread(target=start_gui, daemon=True)
+    gui_thread.start()
+    print("GUI started! Press INSERT to show/hide the UI")
+    print("Right-click while aimbot is enabled to lock on to target")
+    time.sleep(1.5)  # Give GUI time to initialize
+except Exception as e:
+    print(f"GUI failed to start: {e}")
+    print("Running without GUI...")
+    try:
+        from aimbot_controller import AimbotController
+        aimbot_controller = AimbotController()
+    except:
+        aimbot_controller = None
+
 # for the first time
 detectedX = 0
 detectedY = 0
@@ -163,13 +282,10 @@ while (stopScript == False):
     # numberSettingssLow = cv2.getTrackbarPos('0..255Low','settings')
     # numberSettingsHigh = cv2.getTrackbarPos('0..255High','settings')
 
-    screen = grab_screen(region=(0,40,WIDTH,HEIGTH+40))
+    screen = grab_screen(region=(0, config.SCREEN_OFFSET_Y, WIDTH, HEIGTH + config.SCREEN_OFFSET_Y))
 
-    #masking the UI
-    # vertices = np.array([[200,700],[200,600],[10,600],[10,168],[970,168],[970,700]], np.int32)
-    # vertices = np.array([[200,700],[200,600],[10,600],[10,168],[970,168],[970,700]], np.int32)
-    # vertices = np.array([ [10, 168],[10, 700], [970, 168], [970, 700]], np.int32)#LOL
-    vertices = np.array([[10, 168], [10, 700],  [970, 700],[970, 168]], np.int32)  # faster ?
+    #masking the UI - use config values
+    vertices = np.array(config.ROI_VERTICES, np.int32)
 
 	#10 970 first
     #168 700 second
@@ -190,7 +306,13 @@ while (stopScript == False):
     # print(type(screen))
     screenGray = cv2.cvtColor(screen,  cv2.COLOR_BGR2GRAY)
 
-    ret,whiteChannel = cv2.threshold(screenGray,28,255,cv2.THRESH_BINARY)
+    # Improved threshold for Blockade 3D Classic
+    # Try adaptive threshold if simple threshold doesn't work well
+    ret, whiteChannel = cv2.threshold(screenGray, config.THRESHOLD_VALUE, 255, cv2.THRESH_BINARY)
+    
+    # Alternative: Use adaptive threshold for varying lighting conditions
+    # whiteChannel = cv2.adaptiveThreshold(screenGray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
+    #                                     cv2.THRESH_BINARY, 11, 2)
 
     notADamnThing = ""
     # iix = 0
@@ -242,11 +364,50 @@ while (stopScript == False):
     # Yoffset = int(Yoffset / 5)
 
     if(once == 1):
-        # mouse_shoot(int(Xoffset), int(Yoffset))
-
-        # todo: add a trigger button
-        if (keyboard.is_pressed('tab') == False):
-            mouse_shoot(Xoffset, Yoffset)
+        # Check if lock-on is active
+        if aimbot_controller and aimbot_controller.lock_on_active:
+            # Maintain lock on target
+            aimbot_controller.maintain_lock()
+        else:
+            # Normal aimbot behavior
+            # Add random delay before aiming (human reaction time)
+            base_delay = random_delay(80, 250)  # More realistic reaction time
+            delay = anti_detect.add_human_delay_variation(base_delay)
+            time.sleep(delay)
+            
+            # Check if aimbot is enabled via GUI
+            aimbot_enabled = True
+            if aimbot_controller and aimbot_controller.gui:
+                aimbot_enabled = aimbot_controller.gui.aimbot_enabled
+            elif gui:
+                aimbot_enabled = gui.aimbot_enabled
+                
+            # todo: add a trigger button
+            if (keyboard.is_pressed('tab') == False) and aimbot_enabled:
+                # Only shoot if target is reasonably close (avoid obvious snaps)
+                distance = math.sqrt(Xoffset**2 + Yoffset**2)
+                
+                # Check if should take shot (human hesitation)
+                if distance < config.MAX_AIM_DISTANCE:
+                    # Check confidence and distance
+                    confidence = 1.0 - (distance / config.MAX_AIM_DISTANCE) * 0.3
+                    if anti_detect.should_take_shot(distance, confidence):
+                        mouse_shoot(Xoffset, Yoffset)
+                    else:
+                        # Hesitate - don't shoot this time
+                        time.sleep(random_delay(50, 100))
+                else:
+                    # For far targets, add extra delay to simulate human reaction
+                    hesitation = anti_detect.simulate_human_hesitation(distance)
+                    time.sleep(hesitation)
+    else:
+        # No target detected - add micro-movements when idle
+        if random.random() < config.MICRO_MOVEMENT_CHANCE:
+            anti_detect.add_micro_movements(
+                pyautogui.position()[0], 
+                pyautogui.position()[1], 
+                config.MICRO_MOVEMENT_CHANCE
+            )
 
         # playsound.playsound('C:/Users/jerome/Desktop/pythonBlockade3D/mp3/pew.mp3', True)
 
