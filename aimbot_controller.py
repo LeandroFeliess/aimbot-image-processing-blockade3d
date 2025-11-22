@@ -12,6 +12,8 @@ import pyautogui
 from grabscreen import grab_screen
 from keys import Keys
 from mouse_utils import human_like_mouse_move, add_aim_imperfection, random_delay
+from window_finder import window_finder
+from anti_cheat import anti_cheat
 import config
 
 
@@ -85,10 +87,20 @@ class AimbotController:
         if not (0 <= game_x < config.SCREEN_WIDTH and 0 <= game_y < config.SCREEN_HEIGHT):
             return None
             
-        # Capture screen to find target
-        screen = grab_screen(region=(0, config.SCREEN_OFFSET_Y, 
-                                    config.SCREEN_WIDTH, 
-                                    config.SCREEN_HEIGHT + config.SCREEN_OFFSET_Y))
+        # Capture screen to find target (2025 - auto-detect window)
+        if config.AUTO_DETECT_WINDOW:
+            game_region = window_finder.get_game_region()
+            if game_region:
+                left, top, width, height = game_region
+                screen = grab_screen(region=(left, top, left + width, top + height), use_window_finder=True)
+            else:
+                screen = grab_screen(region=(0, config.SCREEN_OFFSET_Y, 
+                                            config.SCREEN_WIDTH, 
+                                            config.SCREEN_HEIGHT + config.SCREEN_OFFSET_Y), use_window_finder=False)
+        else:
+            screen = grab_screen(region=(0, config.SCREEN_OFFSET_Y, 
+                                        config.SCREEN_WIDTH, 
+                                        config.SCREEN_HEIGHT + config.SCREEN_OFFSET_Y), use_window_finder=False)
         
         # Apply ROI mask
         vertices = np.array(config.ROI_VERTICES, np.int32)
@@ -120,10 +132,22 @@ class AimbotController:
             
         current_x, current_y = pyautogui.position()
         
-        # Convert game coordinates to screen coordinates
+        # Convert game coordinates to screen coordinates (2025 - fullscreen support)
         target_game_y, target_game_x = self.locked_target
-        target_screen_x = target_game_x
-        target_screen_y = target_game_y + config.SCREEN_OFFSET_Y
+        
+        # Get window position for accurate coordinates
+        if config.AUTO_DETECT_WINDOW:
+            game_region = window_finder.get_game_region()
+            if game_region:
+                window_left, window_top, window_width, window_height = game_region
+                target_screen_x = window_left + target_game_x
+                target_screen_y = window_top + target_game_y
+            else:
+                target_screen_x = target_game_x
+                target_screen_y = target_game_y + config.SCREEN_OFFSET_Y
+        else:
+            target_screen_x = target_game_x
+            target_screen_y = target_game_y + config.SCREEN_OFFSET_Y
         
         # Calculate offset
         offset_x = target_screen_x - current_x

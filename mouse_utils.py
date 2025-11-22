@@ -47,13 +47,26 @@ def human_like_mouse_move(start_x, start_y, end_x, end_y, duration=None, control
         duration *= random.uniform(0.8, 1.2)
     
     # Generate control point(s) for bezier curve
+    # Ultra-Safe: Meer chaos in control points (EAC detecteert te wiskundige berekeningen)
     mid_x = (start_x + end_x) / 2
     mid_y = (start_y + end_y) / 2
     
-    # Add random offset to control point for natural curve
-    offset_range = distance * random.uniform(0.08, 0.15)  # More variation
-    cp_x = mid_x + random.uniform(-offset_range, offset_range)
-    cp_y = mid_y + random.uniform(-offset_range, offset_range)
+    # Add random offset to control point for natural curve (meer variatie)
+    offset_range = distance * random.uniform(0.1, 0.2)  # Meer variatie (was 0.08-0.15)
+    
+    # Soms gebruik een compleet andere control point (meer chaos)
+    if random.random() < 0.2:  # 20% kans op chaotische control point
+        # Gebruik een willekeurige control point (meer chaos)
+        cp_x = start_x + random.uniform(-distance * 0.3, distance * 0.3)
+        cp_y = start_y + random.uniform(-distance * 0.3, distance * 0.3)
+    else:
+        # Normale control point met variatie
+        cp_x = mid_x + random.uniform(-offset_range, offset_range)
+        cp_y = mid_y + random.uniform(-offset_range, offset_range)
+    
+    # Add extra chaos factor (echte mensen hebben meer variatie)
+    cp_x += random.uniform(-distance * 0.05, distance * 0.05)
+    cp_y += random.uniform(-distance * 0.05, distance * 0.05)
     
     # Sometimes add overshoot for more human-like behavior
     if add_overshoot and random.random() < 0.2:  # 20% chance
@@ -62,55 +75,103 @@ def human_like_mouse_move(start_x, start_y, end_x, end_y, duration=None, control
         end_y = start_y + (end_y - start_y) * overshoot_factor
     
     # Generate movement points
-    steps = max(5, int(duration * 60))  # ~60 steps per second
+    # Ultra-Safe: Variabele steps per second (50-70) om detecteerbare patronen te voorkomen
+    steps_per_second = random.uniform(50, 70)  # Variabele in plaats van vaste 60
+    steps = max(5, int(duration * steps_per_second))
     points = []
+    
+    # Ultra-Safe: Variabele easing curve (niet altijd perfect wiskundig)
+    # EAC detecteert perfecte wiskundige curves - we variëren de easing
+    use_perfect_easing = random.random() < 0.7  # 70% perfect, 30% imperfect
+    if use_perfect_easing:
+        easing_type = random.choice(['ease_in_out', 'ease_in', 'ease_out', 'linear'])
+    else:
+        easing_type = 'chaotic'  # Meer chaos zoals echte mensen
     
     for i in range(steps + 1):
         t = i / steps
-        # Ease-in-out curve for natural acceleration/deceleration
-        eased_t = t * t * (3 - 2 * t)
+        
+        # Ultra-Safe: Variabele easing curves (EAC detecteert perfecte curves)
+        if easing_type == 'ease_in_out':
+            eased_t = t * t * (3 - 2 * t)  # Standaard ease-in-out
+        elif easing_type == 'ease_in':
+            eased_t = t * t  # Ease-in
+        elif easing_type == 'ease_out':
+            eased_t = 1 - (1 - t) * (1 - t)  # Ease-out
+        elif easing_type == 'linear':
+            eased_t = t  # Lineair
+        else:  # chaotic - meer chaos zoals echte mensen
+            # Imperfecte curve met meer variatie
+            eased_t = t * t * (3 - 2 * t)  # Base curve
+            eased_t += random.uniform(-0.1, 0.1) * t * (1 - t)  # Chaos factor
+            eased_t = max(0, min(1, eased_t))  # Clamp
+        
+        # Add extra chaos factor (echte mensen hebben meer variatie)
+        if random.random() < 0.15:  # 15% kans op extra chaos
+            eased_t += random.uniform(-0.05, 0.05)
+            eased_t = max(0, min(1, eased_t))
         
         x = bezier_curve(start_x, cp_x, end_x, eased_t)
         y = bezier_curve(start_y, cp_y, end_y, eased_t)
         
-        # Add small random jitter (imperfection) - more variation
-        jitter_x = random.uniform(-1.0, 1.0)
-        jitter_y = random.uniform(-1.0, 1.0)
+        # Ultra-Safe: Meer jitter en tremor (echte mensen hebben meer variatie)
+        jitter_x = random.uniform(-1.5, 1.5)  # Meer variatie
+        jitter_y = random.uniform(-1.5, 1.5)
         x += jitter_x
         y += jitter_y
         
-        # Add micro-tremor (very small human hand tremor)
-        tremor = random.uniform(-0.3, 0.3)
+        # Add micro-tremor (very small human hand tremor) - meer variatie
+        tremor = random.uniform(-0.5, 0.5)  # Meer tremor
         x += tremor
         y += tremor
         
-        # Variable delay per step (more human-like)
-        base_delay = duration / steps
-        # Add small random variation to each step delay
-        delay = base_delay * random.uniform(0.9, 1.1)
+        # Ultra-Safe: Variabele step sizes (EAC detecteert te consistente steps)
+        # Soms grotere steps, soms kleinere (echte mensen hebben variatie)
+        step_size_multiplier = random.uniform(0.7, 1.3)  # Variabele step sizes
+        base_delay = (duration / steps) * step_size_multiplier
+        
+        # Add small random variation to each step delay (meer variatie)
+        delay = base_delay * random.uniform(0.85, 1.15)  # Meer variatie (was 0.9-1.1)
+        
+        # Ultra-Safe: Soms skip een step (echte mensen hebben onregelmatigheden)
+        if random.random() < 0.05:  # 5% kans om step over te slaan
+            delay *= random.uniform(1.5, 2.5)  # Langere delay = skip effect
+        
         points.append((int(x), int(y), delay))
     
     return points
 
 
-def add_aim_imperfection(target_x, target_y, accuracy=0.95):
+def add_aim_imperfection(target_x, target_y, accuracy=0.86):
     """
-    Add small random offset to aim point to simulate human imperfection
+    Add random offset to aim point to simulate human imperfection (Ultra-Safe Mode)
     
     Args:
         target_x, target_y: Perfect aim coordinates
         accuracy: Accuracy factor (0.0-1.0), higher = more accurate
     
     Returns:
-        (x, y) tuple with slight imperfection
+        (x, y) tuple with imperfection
     """
-    # Calculate max offset based on accuracy
-    max_offset = (1.0 - accuracy) * 10  # Max 10 pixels at 0% accuracy
+    # Calculate max offset based on accuracy (more imperfection for lower accuracy)
+    max_offset = (1.0 - accuracy) * 18  # Max 18 pixels at 0% accuracy (wider range)
     
+    # Add base offset
     offset_x = random.uniform(-max_offset, max_offset)
     offset_y = random.uniform(-max_offset, max_offset)
     
-    return (int(target_x + offset_x), int(target_y + offset_y))
+    # Add additional random jitter (human hand tremor)
+    jitter_x = random.uniform(-3, 3)
+    jitter_y = random.uniform(-3, 3)
+    
+    # Sometimes add larger error (human bad aim moments)
+    if random.random() < 0.2:  # 20% chance
+        error_x = random.uniform(-6, 6)
+        error_y = random.uniform(-6, 6)
+        offset_x += error_x
+        offset_y += error_y
+    
+    return (int(target_x + offset_x + jitter_x), int(target_y + offset_y + jitter_y))
 
 
 def random_delay(min_ms=None, max_ms=None):

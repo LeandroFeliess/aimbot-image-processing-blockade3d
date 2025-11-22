@@ -19,15 +19,23 @@ class AntiDetection:
         self.miss_counter = 0
         self.micro_movement_counter = 0
         
-    def should_miss(self, miss_chance=0.08):
+    def should_miss(self, miss_chance=0.22):
         """
-        Determine if aimbot should miss this shot (human-like errors)
+        Determine if aimbot should miss this shot (human-like errors) - Ultra-Safe Mode
         More misses after consecutive hits to avoid perfect streaks
         """
-        # Increase miss chance after many consecutive hits
+        # Increase miss chance after consecutive hits (much more aggressive)
         adjusted_miss_chance = miss_chance
-        if self.consecutive_hits > 5:
-            adjusted_miss_chance = min(0.25, miss_chance * (1 + self.consecutive_hits * 0.02))
+        if self.consecutive_hits > 3:  # Lower threshold (more misses)
+            adjusted_miss_chance = min(0.35, miss_chance * (1 + self.consecutive_hits * 0.03))
+        
+        # Add base uncertainty (humans are never perfect)
+        base_uncertainty = random.uniform(0.95, 1.05)
+        adjusted_miss_chance *= base_uncertainty
+        
+        # Sometimes add extra miss chance (bad aim moments)
+        if random.random() < 0.1:  # 10% chance
+            adjusted_miss_chance *= random.uniform(1.2, 1.5)
         
         should_miss = random.random() < adjusted_miss_chance
         
@@ -39,21 +47,43 @@ class AntiDetection:
             
         return should_miss
         
-    def add_overshoot(self, target_x, target_y, overshoot_chance=0.15):
+    def add_overshoot(self, target_x, target_y, overshoot_chance=0.25):
         """
-        Add overshoot/undershoot to simulate human aiming errors
+        Add overshoot/undershoot to simulate human aiming errors (Ultra-Safe Mode)
         Humans often overshoot when tracking fast targets
         """
+        # Check for overshoot
         if random.random() < overshoot_chance:
-            # Calculate overshoot amount (5-15 pixels)
-            overshoot_amount = random.uniform(5, 15)
+            # Calculate overshoot amount (8-20 pixels - wider range)
+            overshoot_amount = random.uniform(8, 20)
             
             # Random direction for overshoot
             angle = random.uniform(0, 2 * math.pi)
             offset_x = math.cos(angle) * overshoot_amount
             offset_y = math.sin(angle) * overshoot_amount
             
-            return (target_x + offset_x, target_y + offset_y)
+            target_x += offset_x
+            target_y += offset_y
+        
+        # Also check for undershoot (humans also undershoot)
+        try:
+            import config
+            undershoot_chance = getattr(config, 'UNDERSHOOT_CHANCE', 0.15)
+        except:
+            undershoot_chance = 0.15
+            
+        if random.random() < undershoot_chance:
+            # Calculate undershoot amount (5-12 pixels)
+            undershoot_amount = random.uniform(5, 12)
+            
+            # Random direction for undershoot
+            angle = random.uniform(0, 2 * math.pi)
+            offset_x = math.cos(angle) * undershoot_amount
+            offset_y = math.sin(angle) * undershoot_amount
+            
+            target_x -= offset_x
+            target_y -= offset_y
+        
         return (target_x, target_y)
         
     def add_micro_movements(self, current_x, current_y, micro_chance=0.3):
@@ -76,15 +106,20 @@ class AntiDetection:
         
     def add_human_delay_variation(self, base_delay):
         """
-        Add realistic human delay variations
+        Add realistic human delay variations (Ultra-Safe Mode)
         Humans don't have consistent reaction times
+        EAC can detect too-consistent timing patterns
         """
-        # Add random variation (±20%)
-        variation = random.uniform(0.8, 1.2)
+        # Ultra-Safe: Much wider variation (±30%) to avoid pattern detection
+        variation = random.uniform(0.7, 1.3)
         
-        # Sometimes add extra delay (human distraction/hesitation)
-        if random.random() < 0.1:  # 10% chance
-            variation *= random.uniform(1.2, 1.5)
+        # More frequent extra delays (human distraction/hesitation)
+        if random.random() < 0.15:  # 15% chance (more frequent)
+            variation *= random.uniform(1.2, 1.6)
+        
+        # Sometimes add micro-variations (sub-millisecond jitter)
+        micro_variation = random.uniform(0.98, 1.02)
+        variation *= micro_variation
             
         return base_delay * variation
         
@@ -111,15 +146,17 @@ class AntiDetection:
         
     def simulate_human_hesitation(self, distance):
         """
-        Simulate human hesitation - longer delays for uncertain shots
+        Simulate human hesitation - longer delays for uncertain shots (Ultra-Safe Mode)
         """
-        # More hesitation for far targets
+        # Much more hesitation for far targets (humans are more uncertain)
         if distance > 300:
-            return random.uniform(0.15, 0.3)  # 150-300ms extra
+            return random.uniform(0.25, 0.5)  # 250-500ms extra (much longer)
         elif distance > 150:
-            return random.uniform(0.08, 0.15)  # 80-150ms extra
+            return random.uniform(0.15, 0.3)  # 150-300ms extra (longer)
+        elif distance > 80:
+            return random.uniform(0.08, 0.2)  # 80-200ms extra
         else:
-            return random.uniform(0.0, 0.05)  # 0-50ms extra
+            return random.uniform(0.0, 0.1)  # 0-100ms extra (still some hesitation)
             
     def add_recoil_compensation_error(self, target_x, target_y):
         """

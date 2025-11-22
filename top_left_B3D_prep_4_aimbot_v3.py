@@ -60,7 +60,14 @@ iCoin = 0
 while (iCoin<50):
 #while (True):
 
-    screen = grab_screen(region=(0,0,WIDTH,HEIGTH))
+    # 2025: Use auto window detection
+    from window_finder import window_finder
+    game_region = window_finder.get_game_region()
+    if game_region:
+        left, top, width, height = game_region
+        screen = grab_screen(region=(left, top, left + width, top + height), use_window_finder=True)
+    else:
+        screen = grab_screen(region=(0,0,WIDTH,HEIGTH), use_window_finder=False)
 
     screenGray = cv2.cvtColor(screen,  cv2.COLOR_BGR2GRAY)
 

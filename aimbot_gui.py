@@ -22,6 +22,9 @@ class AimbotGUI:
         # State variables
         self.aimbot_enabled = False
         self.lock_on_enabled = False
+        self.auto_lock_enabled = True  # Auto lock-on when shooting (default ON)
+        self.soft_aim_enabled = False  # Soft aimbot (assisted aiming)
+        self.wallhacks_enabled = False  # Wallhacks/ESP
         self.ui_visible = True
         self.locked_target = None
         self.lock_thread = None
@@ -59,12 +62,22 @@ class AimbotGUI:
         status_frame.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=5)
         
         self.status_label = ttk.Label(status_frame, text="Aimbot: OFF", 
-                                      foreground="red", font=("Arial", 12))
+                                      foreground="red", font=("Arial", 12, "bold"))
         self.status_label.grid(row=0, column=0, sticky=tk.W)
         
         self.lock_status_label = ttk.Label(status_frame, text="Lock-on: OFF", 
                                           foreground="red", font=("Arial", 12))
         self.lock_status_label.grid(row=1, column=0, sticky=tk.W, pady=(5, 0))
+        
+        # Soft Aim status - DUidelijk zichtbaar
+        self.soft_aim_status_label = ttk.Label(status_frame, text="🔹 Soft Aim: OFF", 
+                                               foreground="red", font=("Arial", 14, "bold"))
+        self.soft_aim_status_label.grid(row=2, column=0, sticky=tk.W, pady=(5, 0))
+        
+        # Wallhacks status
+        self.wallhacks_status_label = ttk.Label(status_frame, text="👁️ Wallhacks: OFF", 
+                                               foreground="red", font=("Arial", 12, "bold"))
+        self.wallhacks_status_label.grid(row=3, column=0, sticky=tk.W, pady=(5, 0))
         
         # Controls section
         controls_frame = ttk.LabelFrame(main_frame, text="Controls", padding="10")
@@ -75,10 +88,25 @@ class AimbotGUI:
                                         command=self.toggle_aimbot, width=20)
         self.aimbot_button.grid(row=0, column=0, pady=5)
         
-        # Lock-on toggle
+        # Lock-on toggle (right-click manual lock-on)
         self.lock_button = ttk.Button(controls_frame, text="Enable Lock-on", 
                                       command=self.toggle_lock_on, width=20)
         self.lock_button.grid(row=1, column=0, pady=5)
+        
+        # Auto Lock-on toggle (automatic on left-click shoot)
+        self.auto_lock_button = ttk.Button(controls_frame, text="Enable Auto Lock-on", 
+                                          command=self.toggle_auto_lock, width=20)
+        self.auto_lock_button.grid(row=4, column=0, pady=5)
+        
+        # Soft aimbot toggle
+        self.soft_aim_button = ttk.Button(controls_frame, text="Enable Soft Aim", 
+                                          command=self.toggle_soft_aim, width=20)
+        self.soft_aim_button.grid(row=2, column=0, pady=5)
+        
+        # Wallhacks toggle
+        self.wallhacks_button = ttk.Button(controls_frame, text="Enable Wallhacks", 
+                                          command=self.toggle_wallhacks, width=20)
+        self.wallhacks_button.grid(row=3, column=0, pady=5)
         
         # Settings section
         settings_frame = ttk.LabelFrame(main_frame, text="Settings", padding="10")
@@ -162,6 +190,72 @@ N - Stop script"""
             if self.aimbot_controller:
                 self.aimbot_controller.lock_on_active = False
                 self.aimbot_controller.locked_target = None
+    
+    def toggle_soft_aim(self):
+        """Toggle soft aimbot (assisted aiming)"""
+        self.soft_aim_enabled = not self.soft_aim_enabled
+        if self.soft_aim_enabled:
+            self.soft_aim_status_label.config(text="🔹 Soft Aim: ON ✓ ACTIVE", 
+                                             foreground="green", font=("Arial", 14, "bold"))
+            self.soft_aim_button.config(text="Disable Soft Aim")
+            # Update config
+            config.SOFT_AIM_ENABLED = True
+            print("[GUI] ✓ Soft Aim ENABLED - Assisted aiming is now active")
+        else:
+            self.soft_aim_status_label.config(text="🔹 Soft Aim: OFF", 
+                                             foreground="red", font=("Arial", 14, "bold"))
+            self.soft_aim_button.config(text="Enable Soft Aim")
+            # Update config
+            config.SOFT_AIM_ENABLED = False
+            print("[GUI] ✗ Soft Aim DISABLED")
+    
+    def toggle_auto_lock(self):
+        """Toggle auto lock-on (automatic lock when shooting)"""
+        self.auto_lock_enabled = not self.auto_lock_enabled
+        if self.auto_lock_enabled:
+            self.auto_lock_button.config(text="Disable Auto Lock-on")
+            # Enable auto lock-on
+            try:
+                from auto_lock import auto_lock
+                auto_lock.enabled = True
+                print("[GUI] ✓ Auto Lock-on ENABLED - Will auto-lock on nearest target when shooting")
+            except Exception as e:
+                print(f"[GUI ERROR] Failed to enable auto lock-on: {e}")
+        else:
+            self.auto_lock_button.config(text="Enable Auto Lock-on")
+            # Disable auto lock-on
+            try:
+                from auto_lock import auto_lock
+                auto_lock.enabled = False
+                print("[GUI] ✗ Auto Lock-on DISABLED")
+            except Exception as e:
+                print(f"[GUI ERROR] Failed to disable auto lock-on: {e}")
+    
+    def toggle_wallhacks(self):
+        """Toggle wallhacks/ESP"""
+        self.wallhacks_enabled = not self.wallhacks_enabled
+        if self.wallhacks_enabled:
+            self.wallhacks_status_label.config(text="👁️ Wallhacks: ON ✓ ACTIVE", 
+                                             foreground="green", font=("Arial", 12, "bold"))
+            self.wallhacks_button.config(text="Disable Wallhacks")
+            # Enable wallhacks
+            try:
+                from wallhacks import wallhacks
+                wallhacks.enable()
+                print("[GUI] ✓ Wallhacks ENABLED - ESP overlay active")
+            except Exception as e:
+                print(f"[GUI ERROR] Failed to enable wallhacks: {e}")
+        else:
+            self.wallhacks_status_label.config(text="👁️ Wallhacks: OFF", 
+                                             foreground="red", font=("Arial", 12, "bold"))
+            self.wallhacks_button.config(text="Enable Wallhacks")
+            # Disable wallhacks
+            try:
+                from wallhacks import wallhacks
+                wallhacks.disable()
+                print("[GUI] ✗ Wallhacks DISABLED")
+            except Exception as e:
+                print(f"[GUI ERROR] Failed to disable wallhacks: {e}")
             
     def apply_settings(self):
         """Apply settings from UI to config"""
@@ -189,24 +283,39 @@ N - Stop script"""
             
     def setup_mouse_listener(self):
         """Setup mouse listener for right-click detection"""
+        try:
+            from pynput import mouse
+        except ImportError:
+            print("[GUI WARNING] pynput not available, mouse listener disabled")
+            self.mouse_listener = None
+            return
+            
         def on_click(x, y, button, pressed):
-            if button == mouse.Button.right and pressed:
-                if self.lock_on_enabled and self.aimbot_enabled:
-                    # Lock on to target at mouse position using controller
-                    if self.aimbot_controller:
-                        target = self.aimbot_controller.lock_on_to_position(x, y)
-                        if target:
-                            self.locked_target = target
-                            self.lock_status_label.config(
-                                text=f"Lock-on: LOCKED at ({target[1]}, {target[0]})", 
-                                foreground="green"
-                            )
-                    else:
-                        # Fallback if controller not available
-                        self.lock_on_target(x, y)
+            try:
+                if button == mouse.Button.right and pressed:
+                    if self.lock_on_enabled and self.aimbot_enabled:
+                        # Lock on to target at mouse position using controller
+                        if self.aimbot_controller:
+                            target = self.aimbot_controller.lock_on_to_position(x, y)
+                            if target:
+                                self.locked_target = target
+                                # Thread-safe GUI update
+                                self.root.after(0, lambda: self.lock_status_label.config(
+                                    text=f"Lock-on: LOCKED at ({target[1]}, {target[0]})", 
+                                    foreground="green"
+                                ))
+                        else:
+                            # Fallback if controller not available
+                            self.lock_on_target(x, y)
+            except Exception as e:
+                print(f"[GUI ERROR] Mouse click handler error: {e}")
                     
-        self.mouse_listener = mouse.Listener(on_click=on_click)
-        self.mouse_listener.start()
+        try:
+            self.mouse_listener = mouse.Listener(on_click=on_click)
+            self.mouse_listener.start()
+        except Exception as e:
+            print(f"[GUI ERROR] Failed to start mouse listener: {e}")
+            self.mouse_listener = None
         
     def lock_on_target(self, x, y):
         """Lock on to target at screen coordinates (fallback method)"""
@@ -234,11 +343,30 @@ N - Stop script"""
         pass
         
     def run(self):
-        """Start the GUI"""
+        """Start the GUI with error handling"""
         try:
-            self.root.mainloop()
+            # Keep GUI alive even if errors occur
+            while True:
+                try:
+                    self.root.mainloop()
+                    break  # Exit if mainloop ends normally
+                except Exception as e:
+                    print(f"[GUI ERROR] GUI error: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    # Try to keep GUI running
+                    try:
+                        self.root.update()
+                        time.sleep(0.1)
+                    except:
+                        print("[GUI ERROR] GUI cannot recover, restarting...")
+                        break
         except KeyboardInterrupt:
             self.cleanup()
+        except Exception as e:
+            print(f"[GUI FATAL ERROR] {e}")
+            import traceback
+            traceback.print_exc()
             
     def cleanup(self):
         """Cleanup resources"""

@@ -1,4 +1,6 @@
-# aimbot-image-processing-blockade3d (Updated for Blockade 3D Classic)
+# aimbot-image-processing-blockade3d (Updated for Blockade 3D Classic - 2025)
+
+> **⚡ Snel starten? Zie: [SNEL_START_GUIDE.md](SNEL_START_GUIDE.md)**
 
 ## What is it:
 
@@ -44,26 +46,27 @@ https://www.youtube.com/watch?v=PNkFDKUuN-g
 
 **📖 Zie [INSTALLATIE_GUIDE.md](INSTALLATIE_GUIDE.md) voor een complete stap-voor-stap handleiding!**
 
-### Quick Steps:
+### Quick Steps (2025 - Fullscreen Support!):
 
-1. **Setup Game**: Blockade 3D Classic in 1024x768 windowed mode, position in top-left corner
+1. **Setup Game**: Start Blockade 3D Classic (windowed OR fullscreen - both work!)
 
-2. **Calibrate** (first time only):
-   ```bash
-   python top_left_B3D_prep_4_aimbot_v3.py
-   ```
-   Put mouse on game window title bar during countdown
-
-3. **Start Aimbot**:
+2. **Start Aimbot** (no calibration needed!):
    ```bash
    python main_074_3.6.5.py
    ```
+   The aimbot automatically finds the game window!
 
-4. **Open GUI**: Press **INSERT** key
+3. **Open GUI**: Press **INSERT** key
 
-5. **Enable**: Click "Enable Aimbot" in GUI
+4. **Enable**: Click "Enable Aimbot" in GUI
 
-6. **Play**: Join game, equip m700/crossbow, disable chat (ESC)
+5. **Play**: Join game, equip m700/crossbow, disable chat (ESC)
+
+**✅ NEW (2025)**: 
+- ✅ Fullscreen support
+- ✅ Auto window detection
+- ✅ No manual calibration needed
+- ✅ Anti-cheat bypass features
 
 ### GUI Controls:
    - **INSERT** - Show/hide UI

@@ -1,5 +1,7 @@
 # Stap-voor-Stap Handleiding: Blockade 3D Classic Aimbot
 
+> **⚡ Voor een snelle start, zie: [SNEL_START_GUIDE.md](SNEL_START_GUIDE.md)**
+
 ## 📋 Vereisten
 
 - Windows 10/11
@@ -42,57 +44,63 @@
 
 ## Stap 3: Blockade 3D Classic Instellen
 
-### 3.1 Game Instellingen
+### 3.1 Game Instellingen (2025 - Fullscreen Support!)
 
+**✅ NIEUW**: De aimbot werkt nu in **zowel windowed als fullscreen mode**!
+
+**Optie A: Fullscreen Mode (Aanbevolen)**
+1. Start **Blockade 3D Classic** via Steam
+2. Zet de game in **Fullscreen Mode**
+3. Klaar! De aimbot detecteert automatisch fullscreen
+
+**Optie B: Windowed Mode**
 1. Start **Blockade 3D Classic** via Steam
 2. Ga naar **Settings** (Instellingen)
-3. Zet de resolutie op **1024x768**
+3. Zet de resolutie op **1024x768** (of je voorkeur)
 4. Zet de game in **Windowed Mode** (Venster modus)
-5. Sla de instellingen op en herstart de game
+5. Sla de instellingen op
 
-### 3.2 Window Positie
+### 3.2 Window Positie (Niet meer nodig!)
 
-1. Zorg dat de game window in de **linkerbovenhoek** van je scherm staat
-2. De **Windows title bar** (bovenkant van het venster) moet zichtbaar zijn
-3. Het venster moet precies in de hoek staan (x=0, y=0)
-
----
-
-## Stap 4: Window Calibratie (Eerste Keer)
-
-1. Open Command Prompt in de aimbot map
-2. Run het calibratie script:
-   ```bash
-   python top_left_B3D_prep_4_aimbot_v3.py
-   ```
-
-3. Je ziet een countdown (4, 3, 2, 1)
-4. **Tijdens de countdown**: 
-   - Zet je muis op de **witte title bar** van het Blockade 3D venster
-   - Laat de muis daar staan
-   - Wacht tot het script klaar is (10-50 seconden)
-
-5. Als je ziet: "top left corner achieved" of het script stopt, is het klaar
-6. **BELANGRIJK**: Laat het game venster op deze positie staan!
+**✅ NIEUW**: Geen handmatige window positioning meer nodig!
+- De aimbot vindt automatisch het game venster
+- Werkt in elke positie op je scherm
+- Werkt ook in fullscreen mode
 
 ---
 
-## Stap 5: Aimbot Starten
+## Stap 4: Window Calibratie (NIET MEER NODIG! ✅)
 
-1. Zorg dat Blockade 3D Classic draait in windowed mode (1024x768)
-2. Zorg dat het venster in de linkerbovenhoek staat
-3. Open Command Prompt in de aimbot map
-4. Start de aimbot:
+**✅ NIEUW (2025)**: Calibratie is niet meer nodig!
+- De aimbot detecteert automatisch het game venster
+- Werkt direct zonder handmatige setup
+- Skip deze stap en ga direct naar Stap 5
+
+**Oude methode (niet meer nodig):**
+~~Het calibratie script is optioneel en alleen nodig als auto-detectie niet werkt.~~
+
+---
+
+## Stap 5: Aimbot Starten (2025 - Fullscreen Support!)
+
+1. Zorg dat **Blockade 3D Classic draait** (windowed of fullscreen - beide werken!)
+2. Open Command Prompt in de aimbot map
+3. Start de aimbot:
    ```bash
    python main_074_3.6.5.py
    ```
 
-5. Je ziet:
+4. Je ziet:
+   - "Searching for Blockade 3D Classic window..."
+   - "Window found: Blockade 3D Classic"
+   - "Fullscreen mode detected!" of "Windowed mode detected"
    - Countdown (4, 3, 2, 1)
    - "GUI started! Press INSERT to show/hide the UI"
    - FPS informatie
 
-6. **Druk op INSERT** om de GUI te openen
+5. **Druk op INSERT** om de GUI te openen
+
+**✅ Automatisch**: De aimbot vindt het game venster zelf!
 
 ---
 
